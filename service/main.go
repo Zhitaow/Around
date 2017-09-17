@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"reflect"
 	"github.com/pborman/uuid"
+	"context"
+	"cloud.google.com/go/bigtable"
 )
 
 type Location struct {
@@ -32,6 +34,8 @@ const (
 	//BT_INSTANCE = "around-post"
 	// Needs to update this URL if you deploy it to cloud.
 	ES_URL = "http://35.162.183.37:9200"
+	PROJECT_ID ="totemic-winter-180122"
+	BT_INSTANCE="around-post"
 )
 
 
@@ -68,7 +72,6 @@ func main() {
 			panic(err)
 		}
 	}
-
 	fmt.Println("started-service")
 	http.HandleFunc("/post", handlerPost)
 	http.HandleFunc("/search", handlerSearch)
@@ -85,8 +88,7 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 		return
 	}
-
-	fmt.Fprintf(w, "Post received: %s\n", p.Message)
+	//fmt.Fprintf(w, "Post received: %s\n", p.Message)
 
 	// Create a client
 	es_client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
@@ -112,6 +114,31 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Post is saved to Index: %s\n", p.Message)
 
+	ctx := context.Background()
+	// you must update project name here
+	bt_client, err := bigtable.NewClient(ctx, PROJECT_ID, BT_INSTANCE)
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	// TODO save Post into BT as well
+	tbl := bt_client.Open("post")
+	mut := bigtable.NewMutation()
+	t := bigtable.Now()
+
+	mut.Set("post", "user", t, []byte(p.User))
+	mut.Set("post", "message", t, []byte(p.Message))
+	mut.Set("location", "lat", t, []byte(strconv.FormatFloat(p.Location.Lat, 'f', -1, 64)))
+	mut.Set("location", "lon", t, []byte(strconv.FormatFloat(p.Location.Lon, 'f', -1, 64)))
+
+	err = tbl.Apply(ctx, id, mut)
+	if err != nil {
+		panic(err)
+		return
+	}
+	fmt.Printf("Post is saved to BigTable: %s\n", p.Message)
+
 
 }
 
@@ -119,13 +146,11 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received one request for search")
 	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
 	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
-
 	// range is optional
 	ran := DISTANCE
 	if val := r.URL.Query().Get("range"); val != "" {
 		ran = val + "km"
 	}
-
 	//fmt.Printf(w, "Search received: %f %f %s", lat, lon, ran)
 
 	// Create a client
@@ -167,7 +192,6 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Post by %s: %s at lat %v and lon %v\n", p.User, p.Message, p.Location.Lat, p.Location.Lon)
 		// TODO(student homework): Perform filtering based on keywords such as web spam etc.
 		ps = append(ps, p)
-
 	}
 	js, err := json.Marshal(ps)
 	if err != nil {
@@ -178,35 +202,3 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
-
-
-//func handlerSearch(w http.ResponseWriter, r *http.Request) {
-//	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
-//	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
-//	// range is optional
-//	ran := DISTANCE
-//	if val := r.URL.Query().Get("range"); val != "" {
-//		ran = val + "km"
-//	}
-//
-//	fmt.Printf("Search received: %f %f %s", lat, lon, ran)
-//
-//	// Return a fake post
-//	p := &Post{
-//		User:"1111",
-//		Message:"一生必去的100个地方",
-//		Location: Location{
-//			Lat:lat,
-//			Lon:lon,
-//		},
-//	}
-//
-//	js, err := json.Marshal(p)
-//	if err != nil {
-//		panic(err)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	w.Write(js)
-//}
