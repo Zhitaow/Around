@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"reflect"
 	"github.com/pborman/uuid"
+	"strings"
 	//"context"
 	//"cloud.google.com/go/bigtable"
 )
@@ -192,7 +193,7 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 		p := item.(Post) // p = (Post) item
 		fmt.Printf("Post by %s: %s at lat %v and lon %v\n", p.User, p.Message, p.Location.Lat, p.Location.Lon)
 		// TODO: Perform filtering based on keywords such as web spam etc.
-		if string.Contain(p.Message, "curse you") == false {
+		if strings.Contains(p.Message, "curse you") == false {
 			ps = append(ps, p)
 		}
 	}
