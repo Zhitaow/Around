@@ -270,17 +270,17 @@ for key, value in bow_transformer.vocabulary_.items():
     if i < 0: break
 ```
 
-    Networking 2573
-    technical 9098
-    support 8995
-    associate 4214
-    long 6930
-    applebees 4137
-    fucking 5931
-    take 9049
-    Hows 1965
-    queen 8050
-    going 6054
+    Aww 979
+    must 7363
+    nearly 7408
+    deadWell 5225
+    Jez 2166
+    isComing 6570
+    toDo 9302
+    workAnd 9851
+    whillTake 9765
+    forever 5893
+    SORRY 3137
 
 
 
@@ -288,12 +288,12 @@ for key, value in bow_transformer.vocabulary_.items():
 # construct the bag-of-word maxtrix using all SMS messages in training set and test set
 msg_bow_train = bow_transformer.transform(msg_train)
 msg_bow_test = bow_transformer.transform(msg_test)
-print("The dimension of bag-of-word matrix for all messages in training set: ", msg_train.shape)
-print("The dimension of bag-of-word matrix for all messages in test set: ", msg_test.shape)
+print("The dimension of bag-of-word matrix for all messages in training set: ", msg_bow_train.shape)
+print("The dimension of bag-of-word matrix for all messages in test set: ", msg_bow_test.shape)
 ```
 
-    The dimension of bag-of-word matrix for all messages in training set:  (4457,)
-    The dimension of bag-of-word matrix for all messages in test set:  (1115,)
+    The dimension of bag-of-word matrix for all messages in training set:  (4457, 10089)
+    The dimension of bag-of-word matrix for all messages in test set:  (1115, 10089)
 
 
 
@@ -307,29 +307,29 @@ print("Print key-value pairs of BOW for message 2: \n", bow2)
 ```
 
     Print one message body:  Free entry in 2 a wkly comp to win FA Cup final tkts 21st May 2005. Text FA to 87121 to receive entry question(std txt rate)T&C's apply 08452810075over18's
-    The dimension of bag-of-word vector for No.2 message:  (1, 10077)
+    The dimension of bag-of-word vector for No.2 message:  (1, 10089)
     Print key-value pairs of BOW for message 2: 
-       (0, 60)	1
-      (0, 347)	1
-      (0, 354)	1
-      (0, 364)	1
-      (0, 738)	1
-      (0, 1334)	1
-      (0, 1577)	2
-      (0, 1672)	1
-      (0, 2425)	1
-      (0, 3449)	1
-      (0, 4140)	1
-      (0, 4926)	1
-      (0, 5558)	2
-      (0, 5765)	1
-      (0, 8054)	1
-      (0, 8090)	1
-      (0, 8136)	1
-      (0, 9250)	1
-      (0, 9406)	1
-      (0, 9763)	1
-      (0, 9798)	1
+       (0, 66)	1
+      (0, 373)	1
+      (0, 380)	1
+      (0, 391)	1
+      (0, 765)	1
+      (0, 1381)	1
+      (0, 1637)	2
+      (0, 1735)	1
+      (0, 2487)	1
+      (0, 3525)	1
+      (0, 4202)	1
+      (0, 4988)	1
+      (0, 5596)	2
+      (0, 5801)	1
+      (0, 8096)	1
+      (0, 8133)	1
+      (0, 8180)	1
+      (0, 9294)	1
+      (0, 9444)	1
+      (0, 9790)	1
+      (0, 9823)	1
 
 
 
@@ -342,8 +342,8 @@ print("Dimension of inverted document frequency in the traning set: ", tfidf_tra
 print("Print details: ", tfidf_transformer_train.idf_)
 ```
 
-    Dimension of inverted document frequency in the traning set:  (10077,)
-    Print details:  [ 8.01616115  8.30384323  8.70930833 ...,  8.70930833  7.20523094
+    Dimension of inverted document frequency in the traning set:  (10089,)
+    Print details:  [ 8.01616115  8.30384323  8.70930833 ...,  8.70930833  6.91754886
       8.70930833]
 
 
@@ -356,16 +356,18 @@ print("Print details: ", tfidf_transformer_train.idf_)
 msg_tfidf_train = tfidf_transformer_train.transform(msg_bow_train)
 msg_tfidf_test = tfidf_transformer_test.transform(msg_bow_test)
 print("Dimension of TF-IDF matrix in the traning set: ", msg_tfidf_train.shape)
+print("Dimension of TF-IDF matrix in the test set: ", msg_tfidf_test.shape)
 ```
 
-    Dimension of TF-IDF matrix in the traning set:  (4457, 10077)
+    Dimension of TF-IDF matrix in the traning set:  (4457, 10089)
+    Dimension of TF-IDF matrix in the test set:  (1115, 10089)
 
 
 ## Trainning a Spam Classifier
 
 
 ```python
-# step 2: fit the model with the training data
+# fit the model with the training data
 from sklearn.naive_bayes import MultinomialNB
 spam_classifier = MultinomialNB().fit(msg_tfidf_train, label_train)
 ```
@@ -374,18 +376,19 @@ spam_classifier = MultinomialNB().fit(msg_tfidf_train, label_train)
 
 
 ```python
+# use trained model to predict spam message in test set, then evaluate the precision/recall
 test_predictions = spam_classifier.predict(msg_tfidf_test)
 print(test_predictions)
 from sklearn.metrics import classification_report
 print (classification_report(label_test, test_predictions))
 ```
 
-    ['ham' 'ham' 'ham' ..., 'spam' 'ham' 'ham']
+    ['ham' 'ham' 'ham' ..., 'ham' 'spam' 'ham']
                  precision    recall  f1-score   support
     
-            ham       0.96      1.00      0.98       957
-           spam       1.00      0.75      0.86       158
+            ham       0.97      1.00      0.99       988
+           spam       1.00      0.76      0.87       127
     
-    avg / total       0.97      0.97      0.96      1115
+    avg / total       0.97      0.97      0.97      1115
     
 
